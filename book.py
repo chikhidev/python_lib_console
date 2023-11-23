@@ -1,4 +1,4 @@
-
+import file
 BOOKS_FILE_NAME = "books.txt"
 
 class Book:
@@ -27,13 +27,32 @@ class Book:
         author = input("auteur : ")
         editor = input("editeur : ")
         isbn = input("ISBN : ")
-        num_copies = input("nombre de copies : ")
-        year = input("année : ")
-        Book.create_book(book_id, title, author, editor, isbn, num_copies, year)
-        print("Livre ajouté avec succès.")
 
-    def create_book(book_id, title, author, editor, isbn, num_copies, year):
-        book_data = f"{book_id},{title},{author},{editor},{isbn},{num_copies},{year}"
+        while True:
+          try:
+              num_copies = int(input("nombre de copies : "))
+              break
+          except ValueError:
+              answer = input("Veuillez saisir un nombre entier\n pour quittez tapez q, pour contiuez tapez entrer (any): ")
+              if answer == "q":
+                 return
+        while True:
+          try:
+              year = int(input("année : "))
+              break
+          except ValueError:
+              answer = input("Veuillez saisir un nombre entier\n pour quittez tapez q, pour contiuez tapez entrer (any): ")
+              if answer == "q":
+                 return
+        if book_id and title and author and editor and isbn and num_copies and year:
+            book = Book(book_id, title, author, editor, isbn, num_copies, year)
+            book.create_book()
+            print("Livre ajouté avec succès.")
+        else:
+            print("Veuillez renseigner tous les champs.")
+
+    def create_book(self):
+        book_data = f"{self.book_id},{self.title},{self.author},{self.editor},{self.isbn},{self.num_copies},{self.year}"
         file.write_to_file(BOOKS_FILE_NAME, book_data)
 
     @staticmethod

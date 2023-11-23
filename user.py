@@ -1,4 +1,5 @@
 import file
+import re
 
 USERS_FILE_NAME = "users.txt"
 
@@ -14,20 +15,37 @@ class User:
     def __str__(self):
         return f"User(id={self.id}, name='{self.name}', nickname='{self.nickname}', email='{self.email}', login='{self.login}', password='{self.password}')"
 
-    def create_user(user_id, name, nickname, mail, login, password):
-        user_data = f"{user_id},{name},{nickname},{mail},{login},{password}"
+    def create_user(self):
+        user_data = f"{self.id},{self.name},{self.nickname},{self.email},{self.login},{self.password}"
         file.write_to_file(USERS_FILE_NAME, user_data)
         print("Utilisateur ajouté avec succès.")
 
     def add_user():
       user_id = input("ID utilisateur : ")
+      user_check = User.get_user(user_id)
+      if user_check:
+        print("L'ID utilisateur existe déjà.")
+        return
       name = input("nom : ")
       nickname = input("prenom : ")
-      mail = input("email : ")
+      mail_valide = False
+      while not mail_valide:
+        mail = input("email : ")
+        if re.match(r"[^@]+@[^@]+\.[^@]+", mail):
+            mail_valide = True
+        elif mail == 0:
+            return
+        else:
+            print("Format d'email non valide. Veuillez saisir une adresse e-mail valide.\n Pour quitter, appuyez sur 0")
+            
       login = input("login : ")
       password = input("mot de passe : ")
-      User.create_user(user_id, name, nickname, mail, login, password)
-      print("Utilisateur ajouté avec succès.")
+      if user_id and name and nickname and mail and login and password:
+          user = User(user_id, name, nickname, mail, login, password)
+          user.create_user()
+          print("Utilisateur ajouté avec succès.")
+      else:
+          print("Veuillez renseigner tous les champs.")
   
     def get_users():
       users = []

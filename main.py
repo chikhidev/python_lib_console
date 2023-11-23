@@ -66,11 +66,20 @@ def handle_option(option):
   elif option == "9":
       Borrow.display_late_returning_books()
   elif option == "10":
-      Borrow.return_book(input("ID d'utilisateur : "), input("ID du livre à marquer comme rendu : "))
+      user_id = input("ID d'utilisateur : ")
+      book_id = input("ID du livre à marquer comme rendu : ")
+      if (not user_id or book_id):
+          print("Veuillez renseigner tous les champs.")
+      else:
+          Borrow.return_book(user_id, book_id)
   elif option == "11":
         Book.available_books()
   elif option == "12":
-      Borrow.books_taken_by(input("ID de l'utilisateur : "))
+      user_id = input("ID de l'utilisateur : ")
+      if user_id:
+          Borrow.books_taken_by(user_id)
+      else:
+        print("ID d'utilisateur introuvable.")
   elif option == "0":
       log_out()
       print("Au revoir !")
@@ -82,7 +91,11 @@ def handle_user_option(option):
   if option == "1":
       Book.display_books()
   elif option == "2":
-      Borrow.borrow_book(logged_in_user_id, input("ID du livre à emprunter : "))
+      book_id_to_borrow = input("ID du livre à emprunter : ")
+      if book_id_to_borrow:
+          Borrow.borrow_book(logged_in_user_id, book_id_to_borrow)
+      else:
+          print("Veuillez renseigner l'ID du livre à emprunter.")
   elif option == "3":
       Borrow.display_borrowed_books()
   elif option == "4":
