@@ -68,7 +68,7 @@ def handle_option(option):
   elif option == "10":
       user_id = input("ID d'utilisateur : ")
       book_id = input("ID du livre à marquer comme rendu : ")
-      if (not user_id or book_id):
+      if (not user_id or not book_id):
           print("Veuillez renseigner tous les champs.")
       else:
           Borrow.return_book(user_id, book_id)
@@ -155,18 +155,21 @@ while True:
       user_or_admin = input("Voulez-vous vous connecter en tant qu'utilisateur (U) ou administrateur (A) ? ")
 
       if user_or_admin.lower() == "u":
-          user_login = input("Saisissez votre identifiant : ")
-          user_password = input("Saisissez votre mot de passe : ")
+            user_login = input("Saisissez votre identifiant : ")
+            user_password = input("Saisissez votre mot de passe : ")
 
-          if log_in(user_login, user_password) and not is_admin_login(user_login, user_password):
-            print("Connecté en tant qu'utilisateur avec succès.")
-            for user in User.get_users():
-                if user["login"] == user_login:
-                    logged_in_user_id = user["user_id"]
-                    break
+            if user_login and user_password:
+                if log_in(user_login, user_password) and not is_admin_login(user_login, user_password):
+                    print("Connecté en tant qu'utilisateur avec succès.")
+                    for user in User.get_users():
+                        if user["login"] == user_login:
+                            logged_in_user_id = user["user_id"]
+                            break
 
-          else:
-              print("Identifiant ou mot de passe incorrect ou vous utilisez des identifiants d'administrateur.")
+                else:
+                    print("Identifiant ou mot de passe incorrect ou vous utilisez des identifiants d'administrateur.")
+            else:
+                    print("veuillez remplir votre identifiant et votre mot de passe!")
 
       elif user_or_admin.lower() == "a":
           admin_login = input("Saisissez l'identifiant administrateur : ")

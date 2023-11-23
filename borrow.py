@@ -17,26 +17,29 @@ class Borrow:
     @staticmethod
     def borrow_book(user_id, book_id):
         borrowed_books = Borrow.read_borrowed_books_from_file(user_id)
+
         if len(borrowed_books) >= MAX_BOOKS_PER_STUDENT:
             print("Limite de livres empruntés atteinte.")
             return
+
         if Borrow.is_book_already_borrowed(user_id, book_id):
             print("Ce livre est déjà emprunté par l'utilisateur.")
             return
+
+        all_borrowed_books = Borrow.read_all_borrowed_books()
+        if any(entry["book_id"] == book_id for entry in all_borrowed_books):
+            print("Ce livre est déjà emprunté par un autre utilisateur.")
+            return
+
         book = Book.get_book_by_id(book_id)
         if book is None:
             print("Livre introuvable.")
             return
+
         due_date = Borrow.calculate_due_date()
-        if not any(
-            entry["book_id"] == book_id and entry["due_date"] == due_date
-            for entry in borrowed_books
-        ):
-            borrowed_books.append({"book_id": book_id, "due_date": due_date})
-            Borrow.write_borrowed_books_to_file(user_id, borrowed_books)
-            print("Livre emprunté avec succès.")
-        else:
-            print("Ce livre est déjà emprunté par l'utilisateur.")
+        borrowed_books.append({"book_id": book_id, "due_date": due_date})
+        Borrow.write_borrowed_books_to_file(user_id, borrowed_books)
+        print("Livre emprunté avec succès.")
 
     @staticmethod
     def return_book(user_id, book_id):
@@ -68,20 +71,27 @@ class Borrow:
             print("Livre retourné avec succès.")
         except FileNotFoundError:
             print(f"Fichier {BORROWED_BOOKS_FILE} introuvable.")
+        except Exception as e:
+            print(f"Une erreur s'est produite lors du retour du livre : {e}")
+
 
     @staticmethod
-    def read_borrowed_books_from_file(user_id):
+    def read_all_borrowed_books():
         try:
             with open(BORROWED_BOOKS_FILE, "r") as file:
                 content = []
                 for line in file:
-                    if user_id in line:
-                        user_id, book_id, due_date = line.strip().split(",")
-                        content.append({"book_id": book_id, "due_date": due_date})
+                    values = line.strip().split(",")
+                    if len(values) == 3:
+                        user_id, book_id, due_date = values
+                        content.append({"user_id": user_id, "book_id": book_id, "due_date": due_date})
+                        
                 return content
         except FileNotFoundError:
             print(f"Fichier {BORROWED_BOOKS_FILE} introuvable.")
             return []
+
+
 
     @staticmethod
     def is_book_already_borrowed(user_id, book_id):
@@ -170,46 +180,48 @@ class Borrow:
 
     @staticmethod
     def display_borrowed_books():
+        import os
         try:
             with open(BORROWED_BOOKS_FILE, "r") as file:
-                for borrowed_book in file:
-                    try:
-                        user_id, book_id, due_date = borrowed_book.strip().split(",")
-                        print(
-                            f"Utilisateur : {user_id}\tLivre : {book_id}\tDate d'échéance : {due_date}"
-                        )
-                    except ValueError:
-                        print(
-                            f"Données de livre emprunté incorrectes : {borrowed_book}"
-                        )
+                if os.path.getsize(BORROWED_BOOKS_FILE) == 0:
+                    print("Le fichier est vide. Aucun livre emprunté à afficher.")
+                else:
+                    for borrowed_book in file:
+                        try:
+                            user_id, book_id, due_date = borrowed_book.strip().split(",")
+                            print(
+                                f"Utilisateur : {user_id}\tLivre : {book_id}\tDate d'échéance : {due_date}"
+                            )
+                        except ValueError:
+                            pass
         except FileNotFoundError:
             print("Fichier introuvable. Impossible d'afficher les livres empruntés.")
+
 
     @staticmethod
     def display_late_returning_books():
         try:
             current_date = datetime.date.today()
             with open(BORROWED_BOOKS_FILE, "r") as file:
-                for borrowed_book in file:
-                    try:
-                        user_id, book_id, due_date = borrowed_book.strip().split(",")
-                        due_date = datetime.datetime.strptime(
-                            due_date, "%Y-%m-%d"
-                        ).date()
-                        days_diff = (current_date - due_date).days
+                if file.tell() == 0:
+                    print("Le fichier est vide. Aucun livre en retard à afficher.")
+                else:
+                    for borrowed_book in file:
+                        try:
+                            user_id, book_id, due_date = borrowed_book.strip().split(",")
+                            due_date = datetime.datetime.strptime(
+                                due_date, "%Y-%m-%d"
+                            ).date()
+                            days_diff = (current_date - due_date).days
 
-                        if days_diff >= MAX_DAYS_ALLOWED:
-                            print(
-                                f"Utilisateur : {user_id}\tLivre : {book_id}\tDate d'échéance : {due_date}"
-                            )
-
-                    except ValueError:
-                        print(
-                            f"Données de livre emprunté incorrectes : {borrowed_book}"
-                        )
-
+                            if days_diff >= MAX_DAYS_ALLOWED:
+                                print(
+                                    f"Utilisateur : {user_id}\tLivre : {book_id}\tDate d'échéance : {due_date}"
+                                )
+                        except ValueError:
+                            print(f"Données de livre emprunté incorrectes  {borrowed_book}")
         except FileNotFoundError:
-            print("Fichier introuvable. Impossible d'afficher les livres empruntés.")
+            print("Fichier introuvable. Impossible d'afficher les livres en retard.")
 
     def books_taken_by(user_id):
         user_borrowed_books = Borrow.read_borrowed_books_from_file(user_id)
@@ -229,11 +241,18 @@ class Borrow:
                     print(f"Livre introuvable avec l'ID {book_id}.")
 
     @staticmethod
-    def read_all_borrowed_books():
+    def read_borrowed_books_from_file(user_id):
         try:
             with open(BORROWED_BOOKS_FILE, "r") as file:
-                content = [line.strip().split(",") for line in file]
-                return [book_id for _, book_id, _ in content]
+                content = []
+                for line in file:
+                    try:
+                        current_user_id, book_id, due_date = line.strip().split(",")
+                        if current_user_id == user_id:
+                            content.append({"user_id": current_user_id, "book_id": book_id, "due_date": due_date})
+                    except ValueError:
+                        pass
+                return content
         except FileNotFoundError:
             print(f"Fichier {BORROWED_BOOKS_FILE} introuvable.")
             return []
