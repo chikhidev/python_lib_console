@@ -1,1 +1,0 @@
-9999999999{"name": "actions", "version": "1.0.3", "summary": "Declarative actions", "requires_dist": ["bunch==1.0.1"], "requires_python": null, "files": [{"file": "actions-1.0.3.tar.gz", "hash": "sha256:ff8bf50fd1bfcb9e8af1b7e74935435bbd03666289e10321ae2a4a5570aefb9c"}], "yanked": false, "_cache_version": "2.0.0"}
