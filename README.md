@@ -25,12 +25,6 @@ This is a Python library for managing a console-based library system. It provide
    cd python_lib_console
    ```
 
-3. Install the required dependencies:
-
-   ````shell
-   pip install -r requirements.txt
-   ```
-
 ## Usage
 
 1. Run the main.py file to start the console application:
