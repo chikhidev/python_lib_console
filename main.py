@@ -1,194 +1,169 @@
+import tkinter as tk
+from tkinter import messagebox
 from user import User
-from book import Book
-from borrow import Borrow
-from user_manage import UserManage
+from admin_view import show_admin_view
+from user_view import show_user_view
 
 logged_in_user_id = None
 is_admin = False
 ADMIN_PASSWORD = "admin"
 ADMIN_LOGIN = "admin"
 ADMIN = "__ID__ADMIN__"
-MAX_BOOKS_PER_STUDENT = 3
+
+login_frame = None  # Global variable to track the login frame
+
+def main():
+    root = tk.Tk()
+    root.title("Système de Gestion de Bibliothèque")
+    root.configure(bg="white")
+
+    root.minsize(width=640, height=480)
+    root.configure(bg="white")
+    root.attributes('-zoomed', 1)
+
+    frame = tk.Frame(root, bg="white")
+    frame.pack(pady=10)
+
+    role_frame = tk.Frame(frame, bg="white")
+    role_frame.grid(row=0, column=0, padx=10)
+
+    def choose_login_role(role):
+      global login_frame
+
+      # Hide the role frame
+      role_frame.grid_remove()
+
+      # Create the login frame
+      login_frame = tk.Frame(frame, bg="white")
+      login_frame.grid(row=0, column=1, padx=10, pady=20)
+
+      global login_label, login_entry, password_label, password_entry, login_button, return_button, button_frame
+
+      title_font = ("Arial", 14, "bold")  # Set the desired font size and style for the title
+      label_font = ("Arial", 8)  # Set the desired font size for labels
+
+      title_label = tk.Label(
+          login_frame, text=f"Login en tant que\n{'administrateur' if role == 'admin' else 'utilisateur'}!", bg="white", fg="black", font=title_font
+      )
+      title_label.grid(row=0, column=0, columnspan=2, pady=10)
+
+      login_label = tk.Label(
+          login_frame, text=f"Login ⤵", bg="white", fg="black", font=label_font
+      )
+      login_label.grid(row=1, column=0, sticky='w', padx=5, columnspan=2, pady=5)
+
+      login_entry = tk.Entry(login_frame, bg="white", font=("Arial", 10), highlightthickness=0)
+      login_entry.grid(row=2, column=0, padx=5, sticky='w', columnspan=2)
+
+      password_label = tk.Label(
+          login_frame, text=f"Mot de passe ⤵", bg="white", fg="black", font=label_font
+      )
+      password_label.grid(row=3, column=0, sticky='w', padx=5, columnspan=2, pady=5)
+
+      password_entry = tk.Entry(login_frame, show="*", bg="white", font=("Arial", 10), highlightthickness=0)
+      password_entry.grid(row=4, column=0, padx=5, sticky='w', columnspan=2)
+
+      button_frame = tk.Frame(login_frame, bg="white")
+      button_frame.grid(row=5, column=0, padx=5, pady=12, sticky='w', columnspan=2)
+
+      login_button = tk.Button(
+          button_frame, text="Connexion", command=lambda: login(role), bg="blue", fg="white", font=("Arial", 10), relief="flat"
+      )
+      login_button.grid(row=0, column=0)
+
+      return_button = tk.Button(
+          button_frame, text="⏎ Retour", command=return_to_role_selection, font=("Arial", 10), relief="flat"
+      )
+      return_button.grid(row=0, column=1, padx=5)
 
 
-def is_admin_login(login, password):
-    return (login == ADMIN_LOGIN and password == ADMIN_PASSWORD)
 
 
-def log_in(login, password):
-    users = User.get_users()
-    for user in users:
-        if user["login"] == login and user["password"] == password:
-            logged_in_user_id = user["user_id"]
-            return True
-    return False
+    def return_to_role_selection():
+        login_frame.grid_remove()
+        role_frame.grid()
 
+    def login(role):
+      global logged_in_user_id, is_admin
+      user_login = login_entry.get()
+      user_password = password_entry.get()
 
-def log_out():
-    global logged_in_user_id, is_admin
-    logged_in_user_id = None
-    is_admin = False
+      if user_login:
+          if role == "admin":
+              if user_login == ADMIN_LOGIN and (not user_password or user_password == ADMIN_PASSWORD):
+                  logged_in_user_id = ADMIN
+                  is_admin = True
+                  messagebox.showinfo("Connexion Réussie", "Connecté en tant qu'administrateur.")
+                  clear_login_view()
+                  show_admin_view(root, logged_in_user_id, logout_callback)
+              else:
+                  messagebox.showerror("Échec de la Connexion", "Identifiants de connexion admin invalides.")
+          elif role == "user":
+              users = User.get_users()
+              for user in users:
+                  if user["login"] == user_login and "password" in user and user["password"] == user_password:
+                      logged_in_user_id = user["user_id"]
+                      messagebox.showinfo("Connexion Réussie", "Connecté en tant qu'utilisateur.")
+                      clear_login_view()
+                      show_user_view(root, logged_in_user_id, logout_callback)
+                      return
 
-
-# Menu functions --------------------------------------------------
-
-
-def handle_option(option):
-  if option == "1":
-      User.add_user()
-  elif option == "2":
-      User.display_users()
-  elif option == "3":
-      Book.add_book()
-  elif option == "4":
-      Book.display_books()
-  elif option == "5":
-      user_id = input("ID d'utilisateur : ")
-      user = User.get_user(user_id)
-      if user is not None:
-          suspended_users = UserManage.read_suspended_users_from_file()
-          if user_id in suspended_users:
-              print(
-                  "Compte d'utilisateur suspendu. L'emprunt de livres n'est pas autorisé."
-              )
-          elif len(user["borrowed_books"]) >= MAX_BOOKS_PER_STUDENT:
-              print("Limite de livres empruntés atteinte.")
+              messagebox.showerror("Échec de la Connexion", "Identifiants de connexion utilisateur invalides.")
           else:
-              Borrow.borrow_book(user_id, input("ID du livre à emprunter : "))
+              messagebox.showerror("Échec de la Connexion", "Rôle de connexion invalide.")
       else:
-          print("Utilisateur introuvable.")
-  elif option == "6":
-      Borrow.display_borrowed_books()
-  elif option == "7":
-      UserManage.manage_user_accounts()
-  elif option == "8":
-      Borrow.manage_borrowed_books()
-  elif option == "9":
-      Borrow.display_late_returning_books()
-  elif option == "10":
-      user_id = input("ID d'utilisateur : ")
-      book_id = input("ID du livre à marquer comme rendu : ")
-      if (not user_id or not book_id):
-          print("Veuillez renseigner tous les champs.")
-      else:
-          Borrow.return_book(user_id, book_id)
-  elif option == "11":
-        Book.available_books()
-  elif option == "12":
-      user_id = input("ID de l'utilisateur : ")
-      if user_id:
-          Borrow.books_taken_by(user_id)
-      else:
-        print("ID d'utilisateur introuvable.")
-  elif option == "0":
-      log_out()
-      print("Au revoir !")
-  else:
-      print("\nOption invalide. Veuillez sélectionner une option valide.\n")
+          messagebox.showerror("Échec de la Connexion", "Veuillez saisir un login.")
+
+    def clear_login_view():
+      global login_label, login_entry, password_label, password_entry, login_button
+
+      # Check if each widget exists before attempting to destroy it
+      widgets_to_destroy = [widget for widget in [login_label, login_entry, password_label, password_entry, login_button] if widget is not None]
+
+      for widget in widgets_to_destroy:
+          if widget.winfo_exists():
+              widget.destroy()
+
+      # Reset the global variables to None
+      login_label, login_entry, password_label, password_entry, login_button = (None, None, None, None, None)
 
 
-def handle_user_option(option):
-  if option == "1":
-      Book.display_books()
-  elif option == "2":
-      book_id_to_borrow = input("ID du livre à emprunter : ")
-      if book_id_to_borrow:
-          Borrow.borrow_book(logged_in_user_id, book_id_to_borrow)
-      else:
-          print("Veuillez renseigner l'ID du livre à emprunter.")
-  elif option == "3":
-      Borrow.display_borrowed_books()
-  elif option == "4":
-      Borrow.return_book(logged_in_user_id, input("ID du livre à retourner : "))
-  elif option == "5":
-      Book.available_books()
-  elif option == "6":
-      Borrow.books_taken_by(logged_in_user_id)
-  elif option == "0":
-      log_out()
-      print("Au revoir !")
-  else:
-      print("\nOption invalide. Veuillez sélectionner une option valide.\n")
-    
-# Menu display functions --------------------------------------------
 
 
-def display_user_options():
-  print("\nMenu utilisateur:--------------------------------------------------------\n")
-  print("1 - Afficher les livres")
-  print("2 - Emprunter un livre")
-  print("3 - Afficher les livres empruntés")
-  print("4 - Retourner un livre")
-  print("5 - Afficher les livres disponibles")
-  print("6 - Afficher les livres vous ayant empruntés")
-  print("0 - Se déconnecter")
+    def logout_callback():
+        global logged_in_user_id, is_admin
+        logged_in_user_id = None
+        is_admin = False
+        root.destroy()
+        main()
 
-def display_admin_menu():
-  print("\nMenu administrateur:------------------------------------------------------\n")
-  print("1 - Ajouter un utilisateur")
-  print("2 - Afficher les utilisateurs")
-  print("3 - Ajouter un livre")
-  print("4 - Afficher les livres")
-  print("5 - Emprunter un livre")
-  print("6 - Afficher les livres empruntés")
-  print("7 - Gérer les comptes utilisateurs")
-  print("8 - Gérer les emprunts de livres")
-  print("9 - Afficher les livres en retard")
-  print("10 - Marquer un livre comme rendu")
-  print("11 - Afficher les livres disponibles")
-  print("12 - Afficher les utilisateurs ayant empruntés un livre")
-  print("0 - Se déconnecter")
+    role_label = tk.Label(
+        role_frame, text="Sélectionnez un rôle de connexion  ⤵", bg="white", fg="black",
+        font=("Helvetica", 14) , # You can change "Helvetica" to your desired font family and 14 to your desired size
+    )
+    role_label.grid(row=0, columnspan=2, pady=20)
 
+    admin_button = tk.Button(
+      role_frame,
+      text="➤ Connexion Admin",
+      command=lambda: choose_login_role("admin"),
+      bg="white", fg="black",
+      width=22,
+      relief=tk.FLAT,
+    )
+    admin_button.grid(row=1, column=0, pady=5)
 
-def display_menu(is_admin):
-    if is_admin:
-        display_admin_menu()
-    else:
-        display_user_options()
+    user_button = tk.Button(
+      role_frame,
+      text="➤ Connexion Utilisateur",
+      command=lambda: choose_login_role("user"),
+      width=22,
+      bg="white", fg="black",
+      relief=tk.FLAT,
+    )
+    user_button.grid(row=1, column=1, pady=5)
 
+    root.mainloop()
 
-# Main loop --------------------------------------------------------
-
-while True:
-  if logged_in_user_id is None:
-      print("Vous n'êtes pas connecté.")
-      user_or_admin = input("Voulez-vous vous connecter en tant qu'utilisateur (U) ou administrateur (A) ? ")
-
-      if user_or_admin.lower() == "u":
-            user_login = input("Saisissez votre identifiant : ")
-            user_password = input("Saisissez votre mot de passe : ")
-
-            if user_login and user_password:
-                if log_in(user_login, user_password) and not is_admin_login(user_login, user_password):
-                    print("Connecté en tant qu'utilisateur avec succès.")
-                    for user in User.get_users():
-                        if user["login"] == user_login:
-                            logged_in_user_id = user["user_id"]
-                            break
-
-                else:
-                    print("Identifiant ou mot de passe incorrect ou vous utilisez des identifiants d'administrateur.")
-            else:
-                    print("veuillez remplir votre identifiant et votre mot de passe!")
-
-      elif user_or_admin.lower() == "a":
-          admin_login = input("Saisissez l'identifiant administrateur : ")
-          admin_password = input("Saisissez le mot de passe administrateur : ")
-          if is_admin_login(admin_login, admin_password):
-              print("Connecté en tant qu'administrateur avec succès.")
-              logged_in_user_id = ADMIN
-              is_admin = True
-          else:
-              print("Identifiant ou mot de passe administrateur incorrect.")
-      else:
-          print("Choix invalide. Veuillez sélectionner une option valide (U ou A).")
-
-  else:
-      display_menu(is_admin)
-      option = input("\nSélectionnez une option : ")
-
-      if is_admin:
-          handle_option(option)
-      else:
-          handle_user_option(option)
-
+if __name__ == "__main__":
+    main()
